@@ -1,0 +1,49 @@
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyi
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+*.egg-info/
+sdist/
+var/
+*.egg
+
+# Virtual Environment
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Environment variables (keep .env.sample as template)
+.env
+
+# CT Monitor runtime files
+ct_monitor.log
+ct_monitor_state.json
+*.json.bak
+
+# CT Monitor runtime output directories
+ct_run_*/
+
+# Analysis output files (generated at runtime)
+phishing_analysis.txt
+safe_domains.txt
+
+# Development/scratch directories
+holymoly/
+
+# Roo configuration
+.roo*
+
+# Keep these specific files
+!.env.sample
+!README.md
+!LICENSE
+!requirements.txt
