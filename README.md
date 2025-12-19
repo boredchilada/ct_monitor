@@ -46,7 +46,6 @@ A standalone Python tool for monitoring Certificate Transparency (CT) logs and e
 ### Requirements
 
 - Python 3.7 or higher
-- Internet connection for CT log access
 - (Optional) Google API key or OpenRouter API key for AI-powered phishing detection
 
 ### Setup
