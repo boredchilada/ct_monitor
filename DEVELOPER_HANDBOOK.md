@@ -36,7 +36,23 @@ This document serves as the internal reference guide for developers working on t
 ```
 CT_Monitor/
 |
-|-- ct_monitor.py           # Main application module (all logic)
+|-- ct_monitor/             # Source code package
+|   |-- __init__.py
+|   |-- analysis.py         # AI and keyword analysis
+|   |-- cert_parser.py      # Certificate parsing logic
+|   |-- client.py           # CT log API communication
+|   |-- config.py           # Configuration management
+|   |-- constants.py        # Application constants
+|   |-- main.py             # Main application entry point
+|   |-- monitor.py          # Core monitoring orchestration
+|   |-- reporting.py        # Output file generation
+|   |-- state.py            # State management
+|   `-- utils.py            # Shared utility functions
+|
+|-- scripts/
+|   `-- run_monitor.py      # Application runner script
+|
+|-- ct_monitor.py           # Legacy script (deprecated)
 |-- config.json             # User configuration file
 |-- requirements.txt        # Python dependencies (pip freeze output)
 |-- .env                    # Environment variables (API keys) - NOT committed
@@ -61,12 +77,13 @@ CT_Monitor/
 
 ### High-Level Design
 
-The application follows a single-module architecture with a main class (`CTMonitor`) that encapsulates all monitoring logic. The design prioritizes:
+The application follows a modular architecture, separating concerns into distinct components. The `CTMonitor` class orchestrates the monitoring process by coordinating specialized modules for API communication, parsing, analysis, and reporting. The design prioritizes:
 
-1. **Statelessness per cycle**: Each polling cycle is independent
-2. **State persistence**: Log positions are saved atomically between cycles
-3. **Parallel processing**: ThreadPoolExecutor for concurrent log/entry processing
-4. **Fail-safe operation**: Individual log/entry failures don't crash the monitor
+1. **Modularity**: Clear separation of concerns for easier maintenance and testing
+2. **Statelessness per cycle**: Each polling cycle is independent
+3. **State persistence**: Log positions are saved atomically between cycles
+4. **Parallel processing**: ThreadPoolExecutor for concurrent log/entry processing
+5. **Fail-safe operation**: Individual log/entry failures don't crash the monitor
 
 ### Component Diagram
 
@@ -105,30 +122,39 @@ Main Thread
 
 ## Module Breakdown
 
-### ct_monitor.py
+### ct_monitor Package
 
-The entire application is contained in a single Python file. This section documents each component.
+The application is organized into a Python package with the following modules:
 
-#### Imports and Dependencies
+#### `monitor.py`
+Contains the `CTMonitor` class, which orchestrates the monitoring process. It initializes and coordinates the other components.
 
-| Import | Purpose |
-|--------|---------|
-| `requests` | HTTP client for CT log API calls |
-| `cryptography.x509` | X.509 certificate parsing |
-| `concurrent.futures.ThreadPoolExecutor` | Parallel processing |
-| `langchain` + `langchain_google_genai` | AI-powered phishing detection |
-| `python-dotenv` | Environment variable loading |
+#### `client.py`
+Handles all network communication with CT logs. Contains the `CTClient` class with `get_sth` and `get_entries` methods.
 
-#### Constants
+#### `cert_parser.py`
+Responsible for parsing X.509 certificates. Contains `parse_leaf_input` and `extract_certificate_info` functions.
 
-| Constant | Location | Value | Description |
-|----------|----------|-------|-------------|
-| [`__version__`](ct_monitor.py:42) | Line 42 | `"1.1.0"` | Semantic version string |
-| [`DEFAULT_LOG_URLS`](ct_monitor.py:45) | Lines 45-79 | List of 32 URLs | Active CT log endpoints |
-| [`DEFAULT_CONFIG`](ct_monitor.py:82) | Lines 82-96 | Dict | Default configuration values |
-| [`LEAF_TYPE_OFFSET`](ct_monitor.py:100) | Line 100 | `slice(10, 12)` | RFC 6962 leaf structure offset |
-| [`CERT_LENGTH_OFFSET`](ct_monitor.py:101) | Line 101 | `slice(12, 15)` | Certificate length bytes offset |
-| [`CERT_START_OFFSET`](ct_monitor.py:102) | Line 102 | `15` | Certificate data start position |
+#### `analysis.py`
+Handles domain analysis. Contains the `DomainAnalyzer` class for keyword matching and AI-powered phishing detection.
+
+#### `reporting.py`
+Manages output generation. Contains the `ReportGenerator` class for saving domains to JSON, CSV, or TXT files.
+
+#### `state.py`
+Handles state persistence. Contains the `StateManager` class for loading and saving log positions.
+
+#### `config.py`
+Manages configuration loading and defaults.
+
+#### `utils.py`
+Contains shared utility functions like `setup_logging`, `normalize_url`, and `is_valid_domain`.
+
+#### `constants.py`
+Stores application constants like version, default log URLs, and RFC offsets.
+
+#### `main.py`
+The entry point for the application logic, handling CLI argument parsing and startup.
 
 ---
 
@@ -627,18 +653,15 @@ pip install -r requirements.txt
 
 ### Known Limitations
 
-1. **Single File Architecture**: All logic is in `ct_monitor.py`. Consider modularizing for larger changes.
+1. **Precertificates Ignored**: The parser only handles `x509_entry` (entry_type == 0). Precertificates (type 1) are skipped.
 
-2. **Precertificates Ignored**: The parser only handles `x509_entry` (entry_type == 0). Precertificates (type 1) are skipped.
+2. **AI Batch Parsing**: The LLM response parsing is regex-based and may fail on malformed responses.
 
-3. **AI Batch Parsing**: The LLM response parsing is regex-based and may fail on malformed responses.
-
-4. **No Retry Logic**: Failed HTTP requests are logged but not retried.
+3. **No Retry Logic**: Failed HTTP requests are logged but not retried.
 
 ### Potential Improvements
 
 - Add retry logic with exponential backoff for CT log API calls
-- Modularize into separate files (e.g., `parsers.py`, `analyzers.py`, `writers.py`)
 - Add unit tests for certificate parsing
 - Support additional AI providers beyond Google Gemini
 - Add webhook/notification support for suspicious domain alerts

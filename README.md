@@ -34,6 +34,13 @@ A standalone Python tool for monitoring Certificate Transparency (CT) logs and e
 
 ---
 
+## Future considerations
+
+- Rebuild to use sqlite / postgres and save domains
+- Centralization via DB for tasks like AI verifications 
+- Speed Improvements
+- Make code more modular
+
 ## Installation
 
 ### Requirements
@@ -86,15 +93,17 @@ A standalone Python tool for monitoring Certificate Transparency (CT) logs and e
 
 ## Quick Start
 
+Use --skip-catchup with --once and --ai-mode so you don't wait for everything to update. CT Logs have lots of new entries quickly.
+
 ```bash
 # Run once and save discovered domains to JSON
-python ct_monitor.py --once
+python scripts/run_monitor.py --once --skip-catchup
 
 # Run AI-powered phishing analysis
-python ct_monitor.py --ai-mode
+python scripts/run_monitor.py --ai-mode --skip-catchup
 
 # Run continuous monitoring
-python ct_monitor.py --continuous
+python scripts/run_monitor.py --continuous
 ```
 
 ---
@@ -104,9 +113,9 @@ python ct_monitor.py --continuous
 ### Command Line Options
 
 ```
-usage: ct_monitor.py [-h] [--version] [--config CONFIG] [--create-config FILE]
-                     [--once | --continuous | --ai-mode]
-                     [--skip-catchup] [--keywords KEYWORDS]
+usage: run_monitor.py [-h] [--version] [--config CONFIG] [--create-config FILE]
+                      [--once | --continuous | --ai-mode]
+                      [--skip-catchup] [--keywords KEYWORDS]
                      [--output-format {json,csv,txt}]
                      [--output-file OUTPUT_FILE] [--state-file STATE_FILE]
                      [--poll-interval POLL_INTERVAL]
@@ -197,7 +206,7 @@ When running in AI mode, the tool generates two output files in the run director
 
 Generate a sample configuration file:
 ```bash
-python ct_monitor.py --create-config config.json
+python scripts/run_monitor.py --create-config config.json
 ```
 
 ### Configuration Options
@@ -294,40 +303,40 @@ The tool monitors Certificate Transparency logs from these providers by default:
 
 ```bash
 # Collect domains and save to JSON
-python ct_monitor.py --once --output-format json --output-file domains.json
+python scripts/run_monitor.py --once --output-format json --output-file domains.json
 
 # Collect domains in CSV format for spreadsheet analysis
-python ct_monitor.py --once --output-format csv --output-file domains.csv
+python scripts/run_monitor.py --once --output-format csv --output-file domains.csv
 ```
 
 ### Continuous Monitoring
 
 ```bash
 # Monitor continuously with 30-second intervals
-python ct_monitor.py --continuous --poll-interval 30
+python scripts/run_monitor.py --continuous --poll-interval 30
 
 # High-performance monitoring with more workers
-python ct_monitor.py --continuous --max-workers 20 --poll-interval 10
+python scripts/run_monitor.py --continuous --max-workers 20 --poll-interval 10
 ```
 
 ### Custom Keyword Monitoring
 
 ```bash
 # Monitor for specific brand impersonation
-python ct_monitor.py --once --keywords "amazon,netflix,facebook,instagram"
+python scripts/run_monitor.py --once --keywords "amazon,netflix,facebook,instagram"
 ```
 
 ### AI Phishing Detection
 
 ```bash
 # Run AI analysis on new certificates only
-python ct_monitor.py --ai-mode --skip-catchup
+python scripts/run_monitor.py --ai-mode --skip-catchup
 
 # Analyze with a specific model and domain limit
-python ct_monitor.py --ai-mode --ai-model gemini-1.5-flash-latest --max-domains-for-ai 2000
+python scripts/run_monitor.py --ai-mode --ai-model gemini-1.5-flash-latest --max-domains-for-ai 2000
 
 # Use OpenRouter with DeepSeek
-python ct_monitor.py --ai-mode --ai-provider openrouter --ai-model deepseek/deepseek-r1
+python scripts/run_monitor.py --ai-mode --ai-provider openrouter --ai-model deepseek/deepseek-r1
 ```
 
 ---
@@ -374,7 +383,7 @@ python ct_monitor.py --ai-mode --ai-provider openrouter --ai-model deepseek/deep
 ### Debug Mode
 
 ```bash
-python ct_monitor.py --log-level DEBUG --once
+python scripts/run_monitor.py --log-level DEBUG --once
 ```
 
 ---
@@ -416,13 +425,6 @@ python ct_monitor.py --log-level DEBUG --once
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
-
-## Future considerations
-
-- Rebuild to use sqlite / postgres and save domains
-- Centralization via DB for tasks like AI verifications 
-- Speed Improvements
-- Make code more modular
 
 ## Changelog
 
