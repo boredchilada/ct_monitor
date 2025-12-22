@@ -50,9 +50,9 @@ CT_Monitor/
 |   `-- utils.py            # Shared utility functions
 |
 |-- scripts/
-|   `-- run_monitor.py      # Application runner script
+|   |-- run_monitor.py      # Application runner script
+|   `-- verify_domains.py   # Active domain verification tool
 |
-|-- ct_monitor.py           # Legacy script (deprecated)
 |-- config.json             # User configuration file
 |-- requirements.txt        # Python dependencies (pip freeze output)
 |-- .env                    # Environment variables (API keys) - NOT committed
@@ -130,7 +130,9 @@ The application is organized into a Python package with the following modules:
 Contains the `CTMonitor` class, which orchestrates the monitoring process. It initializes and coordinates the other components.
 
 #### `client.py`
-Handles all network communication with CT logs. Contains the `CTClient` class with `get_sth` and `get_entries` methods.
+Handles all network communication with CT logs. Contains the `CTClient` class with:
+- `get_sth(log_url)`: Fetches the Signed Tree Head (STH) for a given log.
+- `get_entries(log_url, start, end)`: Fetches log entries in batches, handling pagination automatically.
 
 #### `cert_parser.py`
 Responsible for parsing X.509 certificates. Contains `parse_leaf_input` and `extract_certificate_info` functions.
@@ -145,16 +147,27 @@ Manages output generation. Contains the `ReportGenerator` class for saving domai
 Handles state persistence. Contains the `StateManager` class for loading and saving log positions.
 
 #### `config.py`
-Manages configuration loading and defaults.
+Manages configuration loading and defaults. It defines `DEFAULT_CONFIG` and provides functions to load configuration from JSON files (`load_config_file`) and create sample configuration files (`create_sample_config`).
 
 #### `utils.py`
-Contains shared utility functions like `setup_logging`, `normalize_url`, and `is_valid_domain`.
+Contains shared utility functions:
+- `setup_logging(log_level_str)`: Configures logging to console and file.
+- `normalize_url(url)`: Normalizes URLs for consistent processing.
+- `is_valid_domain(domain)`: Validates domain names using regex.
 
 #### `constants.py`
 Stores application constants like version, default log URLs, and RFC offsets.
 
 #### `main.py`
 The entry point for the application logic, handling CLI argument parsing and startup.
+
+### Scripts
+
+#### `scripts/verify_domains.py`
+Independent tool to verify if domains are live and check for "parked" status.
+- **Input**: Text file with list of domains (e.g., `phishing_analysis.txt`)
+- **Output**: `verified_<filename>.txt` with categorized results (Active Threats, Parked, Dead)
+- **Usage**: `python scripts/verify_domains.py <input_file>`
 
 ---
 
@@ -431,7 +444,7 @@ The entry point for the application logic, handling CLI argument parsing and sta
 
 #### [`analyze_domains_for_phishing(self, domains: Set[str])`](ct_monitor.py:458)
 
-**Purpose**: Use Google Gemini to analyze domains for phishing indicators.
+**Purpose**: Use Google Gemini (or configured provider) to analyze domains for phishing indicators, specifically focusing on brand impersonation and social engineering tactics.
 
 **Inputs**: 
 - `domains` (Set[str]): Domains to analyze
@@ -445,9 +458,17 @@ The entry point for the application logic, handling CLI argument parsing and sta
 **Implementation**:
 1. Initializes LangChain with Google Gemini
 2. Batches domains according to `config['ai_batch_size']`
-3. Uses a prompt template requesting SUSPICIOUS/SAFE classification
-4. Parses LLM response to extract classifications
-5. Appends results to output files
+3. Uses a specialized prompt template focusing on:
+   - **Brand Impersonation**: Checks for exact matches, typosquatting, and combosquatting of major brands.
+   - **Suspicious Keywords**: Scans for high-risk terms like 'login', 'verify', 'secure'.
+   - **TLD Reputation**: Considers potentially abusive TLDs.
+   - **Entropy**: Checks for random character strings (DGA).
+   - **Keyword Stuffing**: Identifies excessive subdomain nesting as noise.
+     - Example: `pochta.pay.pochtabank...` (Too many brands)
+     - Example: `sbermarket.pay...` (Excessive nesting)
+4. Requests a structured SUSPICIOUS/SAFE classification with specific reasoning.
+5. Parses LLM response to extract classifications
+6. Appends results to output files
 
 **Error Handling**:
 - Logs error if `GOOGLE_API_KEY` not set
@@ -532,9 +553,12 @@ These functions are defined at module level (outside the class).
 
 ### Priority Order (lowest to highest)
 
-1. `DEFAULT_CONFIG` (hardcoded)
-2. Config file (specified with `--config`)
-3. CLI arguments
+1. `DEFAULT_CONFIG` (hardcoded in `ct_monitor/config.py`)
+2. Default config file (`config.json` in the working directory, if present)
+3. Custom config file (specified with `--config`)
+4. CLI arguments (override specific settings)
+
+The application automatically looks for a `config.json` file in the current directory. If found, it loads settings from there, which can be overridden by command-line arguments.
 
 ### Key Configuration Interactions
 

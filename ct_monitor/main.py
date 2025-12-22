@@ -67,7 +67,13 @@ Examples:
     # Load configuration
     config = DEFAULT_CONFIG.copy()
     
-    if args.config:
+    default_config_path = 'config.json'
+    if not args.config and os.path.exists(default_config_path):
+        print(f"Loading configuration from default file: {default_config_path}")
+        file_config = load_config_file(default_config_path)
+        config.update(file_config)
+    elif args.config:
+        print(f"Loading configuration from: {args.config}")
         file_config = load_config_file(args.config)
         config.update(file_config)
     

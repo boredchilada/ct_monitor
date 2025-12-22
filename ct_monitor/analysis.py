@@ -73,20 +73,34 @@ class DomainAnalyzer:
         # Users can customize this prompt for better results.
         prompt_template = PromptTemplate.from_template(
             """
-            You are a cybersecurity analyst specializing in phishing detection.
-            Analyze the following list of newly registered domain names.
-            Identify any domains that are likely intended for phishing attacks.
-            Consider factors like brand impersonation, urgent keywords, and unusual TLDs.
+            You are an expert Cyber Threat Intelligence Analyst specializing in phishing detection and brand protection.
+            Your task is to analyze the following list of newly registered domain names to identify potential phishing threats, specifically focusing on brand impersonation and social engineering tactics.
 
-            Respond with two lists in the following format, and nothing else:
+            For each domain, evaluate the following criteria:
+            1. **Brand Impersonation**: Does the domain mimic a known brand (e.g., PayPal, Google, Microsoft, Apple, Banks, Crypto exchanges) using exact matches, typosquatting (e.g., 'g0ogle'), or combosquatting (e.g., 'paypal-login')?
+            2. **Suspicious Keywords**: Does it contain high-risk keywords often used in phishing (e.g., 'login', 'verify', 'secure', 'update', 'account', 'support', 'billing')?
+            3. **TLD Reputation**: Is it using a TLD commonly associated with abuse (though not a sole indicator)?
+            4. **Entropy/Randomness**: Does the domain look like a DGA (Domain Generation Algorithm) or random characters?
+            5. **Keyword Stuffing / Subdomain Nesting**: Does the domain contain an excessive number of unrelated brand names or keywords nested in subdomains? These are often automated spam/parking domains and should be treated as NOISE.
+               - **Example of NOISE**: `pochta.pay.pochtabank.pochta.sberbank.nalozhka.sberbank.kwid9.usepay.xyz` (Too many brands, clearly automated)
+               - **Example of NOISE**: `sbermarket.pay.pochtabank.blablacar.avito.tbgld43s9s18dmr1zpdvpux9j189mkd4.poc.purepilatesladera.com` (Excessive nesting, unrelated brands)
+
+            Classify each domain into one of two categories:
+            - **SUSPICIOUS**: High confidence of malicious intent or impersonation. Provide a brief, specific reason (e.g., "Impersonates PayPal with 'verify' keyword").
+            - **SAFE**: Likely benign, unrelated to common phishing targets, insufficient evidence to flag, OR classified as "keyword stuffing" noise.
+
+            **Output Format:**
+            Respond strictly with two lists in the following format. Do not include any conversational text.
+
             SUSPICIOUS:
             - domain1: reason
             - domain2: reason
+
             SAFE:
             - domain3
             - domain4
 
-            If a list is empty, just leave it blank after the heading.
+            If a list is empty, leave it blank after the heading.
 
             Domain list:
             {domains}
